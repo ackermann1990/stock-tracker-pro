@@ -1,21 +1,13 @@
 import streamlit as st
 import requests
 import hashlib
-import spacy
+import textrazor
 
-# Funktion zum Laden des spaCy-Modells mit Caching
-@st.cache_resource
-def load_spacy_model():
-    try:
-        return spacy.load("de_core_news_sm")
-    except OSError:
-        st.write("Lade Sprachmodell herunter...")
-        from spacy.cli import download
-        download("de_core_news_sm")
-        return spacy.load("de_core_news_sm")
+# TextRazor API-Schlüssel setzen
+textrazor.api_key = "a416add172f24a9d5a2e4dda72139660b524d408c182af88aa4f7f08"
 
-# Lade das Sprachmodell mit Caching
-nlp = load_spacy_model()
+# TextRazor Client initialisieren
+client = textrazor.TextRazor(extractors=["entities", "topics"])
 
 # API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
@@ -57,10 +49,10 @@ def request_data(session_id, endpoint):
         st.error("Request failed!")
         return None
 
-# Funktion zur Analyse des Benutzereingabetextes
+# Funktion zur Analyse des Benutzereingabetextes mit TextRazor
 def analyze_text(text):
-    doc = nlp(text)
-    keywords = [token.text.lower() for token in doc if not token.is_stop]
+    response = client.analyze(text)
+    keywords = [entity.id.lower() for entity in response.entities()]
 
     # Schlüsselwörter erkennen und entsprechende Endpunkte zuordnen
     if "kunden" in keywords or "adresse" in keywords:
