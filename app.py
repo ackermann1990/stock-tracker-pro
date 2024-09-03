@@ -23,7 +23,10 @@ login_data = {
 # Funktion zum Login in die API
 def login_to_api():
     response = requests.post(f"{API_URL}/PRO/Login", json=login_data)
-    if response.status_code == 200:
+    st.write(f"Status code: {response.status_code}")
+    st.write(f"Response: {response.text}")
+    
+    if response.status_code == 200 or response.status_code == 201:
         return response.json().get("SessionId")
     else:
         st.error(f"Login failed! Status code: {response.status_code}, Response: {response.text}")
@@ -43,8 +46,6 @@ def request_data(session_id, endpoint):
 
 # Funktion zur Analyse des Benutzereingabetextes
 def analyze_text(text):
-    # Diese Funktion wurde mit TextRazor erstellt und kann an deine Bedürfnisse angepasst werden
-    # Hier sollte die Textverarbeitung und Analyse des Benutzereingabetextes erfolgen
     keywords = text.lower().split()
 
     # Schlüsselwörter erkennen und entsprechende Endpunkte zuordnen
