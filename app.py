@@ -25,15 +25,18 @@ def login_to_api():
     response = requests.post(f"{API_URL}/PRO/Login", json=login_data)
     
     st.write(f"Status code: {response.status_code}")
-    st.write(f"Response text: {response.text}")
     st.write(f"Response headers: {response.headers}")
     
-    try:
-        response_json = response.json()  # Versuche, die Antwort als JSON zu dekodieren
-        st.write(f"Response JSON: {response_json}")
-        return response_json.get("SessionId")
-    except ValueError:  # JSONDecodeError ist eine Unterklasse von ValueError
-        st.error("Failed to decode JSON from response.")
+    if response.status_code == 200 or response.status_code == 201:
+        session_id = response.headers.get("PxSessionId")
+        if session_id:
+            st.write(f"Session ID: {session_id}")
+            return session_id
+        else:
+            st.error("Session ID not found in response headers.")
+            return None
+    else:
+        st.error(f"Login failed! Status code: {response.status_code}, Response: {response.text}")
         return None
 
 # Funktion zur Anfrage an die API
