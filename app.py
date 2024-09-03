@@ -42,13 +42,17 @@ def login_to_api():
 # Funktion zur Anfrage an die API
 def request_data(session_id, endpoint):
     headers = {
-        "SessionId": session_id
+        "PxSessionId": session_id  # Verwende den korrekten Header für die Session-ID
     }
     response = requests.get(f"{API_URL}/{endpoint}", headers=headers)
+    
+    st.write(f"Request status code: {response.status_code}")
+    st.write(f"Request response: {response.text}")
+    
     if response.status_code == 200:
         return response.json()
     else:
-        st.error("Request failed!")
+        st.error(f"Request failed! Status code: {response.status_code}, Response: {response.text}")
         return None
 
 # Funktion zur Analyse des Benutzereingabetextes
