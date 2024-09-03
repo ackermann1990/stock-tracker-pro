@@ -1,7 +1,5 @@
 streamlit
 requests
 pandas
-spacy==3.3.0
-thinc==8.0.0
-# Alternativ, falls erforderlich:
-# de-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.3.0/de_core_news_sm-3.3.0.tar.gz
+spacy
+thinc
