@@ -36,13 +36,15 @@ def login_to_api():
 
 # Funktion zur Interpretation der Anfrage durch ChatGPT
 def interpret_query_with_chatgpt(user_input):
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=f"Interpretiere die folgende Anfrage und mappe sie auf die relevanten Entitäten und API-Endpunkte im Proffix-ERP: {user_input}",
-        max_tokens=200,
-        temperature=0
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant that maps user queries to Proffix ERP API calls."},
+            {"role": "user", "content": f"Interpretiere die folgende Anfrage und mappe sie auf die relevanten Entitäten und API-Endpunkte im Proffix-ERP: {user_input}"}
+        ],
+        max_tokens=150
     )
-    return response.choices[0].text.strip()
+    return response['choices'][0]['message']['content'].strip()
 
 # Funktion zur dynamischen Erstellung der API-Anfrage basierend auf der Interpretation
 def generate_api_request(interpreted_query):
