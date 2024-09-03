@@ -26,6 +26,7 @@ def login_to_api():
     
     st.write(f"Status code: {response.status_code}")
     st.write(f"Response text: {response.text}")
+    st.write(f"Response headers: {response.headers}")
     
     try:
         response_json = response.json()  # Versuche, die Antwort als JSON zu dekodieren
