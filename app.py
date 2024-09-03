@@ -43,6 +43,26 @@ def login_to_api():
         st.error(f"Login failed! Status code: {response.status_code}, Response: {response.text}")
         return None
 
+# Funktion zur Analyse des Benutzereingabetextes mit TextRazor
+def analyze_text(text):
+    response = client.analyze(text)
+    entities = {entity.id.lower(): entity.matched_text for entity in response.entities()}
+    
+    st.write("Erkannte Entitäten:", entities)
+
+    # Erkennung von Entitäten und Ableitung der API-Anfrage
+    if "kunde" in entities:
+        if "ort" in entities:
+            ort = entities["ort"]
+            return f"ADR/adresse?filter=Ort eq '{ort}'&depth=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
+        else:
+            return "ADR/adresse?limit=3&depth=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
+    elif "umsatz" in entities and "firma" in entities:
+        firma = entities["firma"]
+        return f"VOL/umsatz?filter=Firma eq '{firma}'&depth=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
+    else:
+        return None, []
+
 # Funktion zur Anfrage an die API
 def request_data(session_id, endpoint):
     headers = {
@@ -55,21 +75,6 @@ def request_data(session_id, endpoint):
     else:
         st.error(f"Request failed! Status code: {response.status_code}, Response: {response.text}")
         return None
-
-# Funktion zur Analyse des Benutzereingabetextes mit TextRazor
-def analyze_text(text):
-    response = client.analyze(text)
-    entities = [entity.id.lower() for entity in response.entities()]
-    
-    # Schlüsselwörter erkennen und entsprechende Endpunkte zuordnen
-    if "kunden" in entities or "adresse" in entities:
-        return "ADR/adresse?limit=3&depth=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
-    elif "artikel" in entities:
-        return "ART/artikel?limit=3&depth=3", ["ArtikelNr", "Bezeichnung", "Preis"]
-    elif "auftrag" in entities:
-        return "VOL/auftrag?limit=3&depth=3", ["AuftragNr", "Datum", "Kunde", "Betrag"]
-    else:
-        return None, []
 
 # Funktion zur Filterung und Darstellung der relevanten Daten
 def display_data(data, fields):
