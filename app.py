@@ -89,15 +89,19 @@ def display_data(data, fields):
         for field in fields:
             value = item.get(field, "")
             if isinstance(value, dict):
-                value = str(value)  # Bei verschachtelten Dictionaries, in String umwandeln
-            flat_item[field] = value
+                # Wenn das Feld ein Dictionary ist, können wir es flach machen
+                for subkey, subvalue in value.items():
+                    flat_item[f"{field}_{subkey}"] = subvalue
+            else:
+                flat_item[field] = value
         filtered_data.append(flat_item)
     
     # Erstelle ein DataFrame für die Anzeige
-    df = pd.DataFrame(filtered_data)
-    
-    # Zeige das DataFrame in einer sauberen Tabelle an
-    st.dataframe(df)
+    try:
+        df = pd.DataFrame(filtered_data)
+        st.dataframe(df)
+    except ValueError as e:
+        st.error(f"Fehler bei der Datenumwandlung: {e}")
 
 # Streamlit Interface
 def main():
