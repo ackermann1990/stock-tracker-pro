@@ -41,14 +41,12 @@ def interpret_query_with_chatgpt(user_input):
         messages=[
             {"role": "system", "content": "You are a helpful assistant that maps user queries to Proffix ERP API calls."},
             {"role": "user", "content": f"Interpretiere die folgende Anfrage und mappe sie auf die relevanten Entitäten und API-Endpunkte im Proffix-ERP: {user_input}"}
-        ],
-        max_tokens=150
+        ]
     )
     return response['choices'][0]['message']['content'].strip()
 
 # Funktion zur dynamischen Erstellung der API-Anfrage basierend auf der Interpretation
 def generate_api_request(interpreted_query):
-    # Einfache Regel-basierte Zuordnung für bekannte Entitäten
     if "Kundennummer" in interpreted_query:
         kundennummer = interpreted_query.split("Kundennummer ")[1].split(" ")[0]
         return f"ADR/adresse?$filter=AdressNr eq {kundennummer}&$top=1", ["Name", "Strasse", "PLZ", "Ort"]
