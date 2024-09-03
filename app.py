@@ -3,8 +3,14 @@ import requests
 import hashlib
 import spacy
 
-# Lade das spaCy-Modell für die deutsche Sprache
-nlp = spacy.load("de_core_news_sm")
+# Überprüfen, ob das Modell installiert ist, und es ansonsten herunterladen
+try:
+    nlp = spacy.load("de_core_news_sm")
+except OSError:
+    st.write("Lade Sprachmodell herunter...")
+    from spacy.cli import download
+    download("de_core_news_sm")
+    nlp = spacy.load("de_core_news_sm")
 
 # API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
