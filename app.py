@@ -3,14 +3,19 @@ import requests
 import hashlib
 import spacy
 
-# Überprüfen, ob das Modell installiert ist, und es ansonsten herunterladen
-try:
-    nlp = spacy.load("de_core_news_sm")
-except OSError:
-    st.write("Lade Sprachmodell herunter...")
-    from spacy.cli import download
-    download("de_core_news_sm")
-    nlp = spacy.load("de_core_news_sm")
+# Funktion zum Laden des spaCy-Modells mit Caching
+@st.cache_resource
+def load_spacy_model():
+    try:
+        return spacy.load("de_core_news_sm")
+    except OSError:
+        st.write("Lade Sprachmodell herunter...")
+        from spacy.cli import download
+        download("de_core_news_sm")
+        return spacy.load("de_core_news_sm")
+
+# Lade das Sprachmodell mit Caching
+nlp = load_spacy_model()
 
 # API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
