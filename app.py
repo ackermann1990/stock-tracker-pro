@@ -1,12 +1,12 @@
+import openai
 import streamlit as st
 import requests
 import hashlib
-import textrazor
 
-# TextRazor API-Schlüssel setzen
-textrazor.api_key = "a416add172f24a9d5a2e4dda72139660b524d408c182af88aa4f7f08"
+# OpenAI GPT API-Schlüssel setzen
+openai.api_key = "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"
 
-# API URL und Login-Daten
+# Proffix API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
 DATABASE_NAME = "DEMODB"
 USER = "Gast"
@@ -24,40 +24,42 @@ login_data = {
     "Module": MODULE
 }
 
-# TextRazor Client initialisieren
-client = textrazor.TextRazor(extractors=["entities", "topics", "phrases"])
-
 # Funktion zum Login in die API
 def login_to_api():
     response = requests.post(f"{API_URL}/PRO/Login", json=login_data)
     if response.status_code == 200 or response.status_code == 201:
         session_id = response.headers.get("PxSessionId")
-        if session_id:
-            return session_id
-        else:
-            st.error("Session ID not found in response headers.")
-            return None
+        return session_id
     else:
-        st.error(f"Login failed! Status code: {response.status_code}, Response: {response.text}")
+        st.error("Login failed!")
         return None
 
-# Funktion zur Analyse des Benutzereingabetextes mit TextRazor und Zuordnung zu API-Endpunkten
-def analyze_and_map(text):
-    response = client.analyze(text)
-    entities = {entity.id.lower(): entity.matched_text for entity in response.entities()}
-    st.write("Erkannte Entitäten:", entities)
+# Funktion zur Interpretation der Anfrage durch ChatGPT
+def interpret_query_with_chatgpt(user_input):
+    response = openai.Completion.create(
+        engine="text-davinci-003",
+        prompt=f"Interpretiere die folgende Anfrage und mappe sie auf die relevanten Entitäten und API-Endpunkte im Proffix-ERP: {user_input}",
+        max_tokens=200,
+        temperature=0
+    )
+    return response.choices[0].text.strip()
 
-    # Beispiel für Mapping von Entitäten zu API-Endpunkten
-    if "kundennummer" in entities:
-        kundennummer = entities["kundennummer"]
+# Funktion zur dynamischen Erstellung der API-Anfrage basierend auf der Interpretation
+def generate_api_request(interpreted_query):
+    # Einfache Regel-basierte Zuordnung für bekannte Entitäten
+    if "Kundennummer" in interpreted_query:
+        kundennummer = interpreted_query.split("Kundennummer ")[1].split(" ")[0]
         return f"ADR/adresse?$filter=AdressNr eq {kundennummer}&$top=1", ["Name", "Strasse", "PLZ", "Ort"]
-    elif "mailadresse" in entities and "firma" in entities:
-        firma = entities["firma"]
+    elif "Mailadresse" in interpreted_query and "Firma" in interpreted_query:
+        firma = interpreted_query.split("Firma ")[1].split(" ")[0]
         return f"ADR/adresse?$filter=contains(Name,'{firma}')&$top=1", ["EMail"]
+    elif "Kunden aus" in interpreted_query and "Ort" in interpreted_query:
+        ort = interpreted_query.split("Ort ")[1].split(" ")[0]
+        return f"ADR/adresse?$filter=contains(Ort,'{ort}')", ["Name", "Strasse", "PLZ", "Ort"]
     else:
         return None, []
 
-# Funktion zur Anfrage an die API
+# Funktion zur Anfrage an die Proffix API
 def request_data(session_id, endpoint):
     headers = {
         "PxSessionId": session_id
@@ -66,43 +68,37 @@ def request_data(session_id, endpoint):
     if response.status_code == 200:
         return response.json()
     else:
-        st.error(f"Request failed! Status code: {response.status_code}, Response: {response.text}")
+        st.error("Request failed!")
         return None
 
-# Funktion zur Darstellung der relevanten Daten
+# Funktion zur Darstellung der Daten
 def display_data(data, fields):
     if not data:
         st.info("Keine Daten gefunden.")
         return
+    flat_data = [{field: item.get(field, "") for field in fields} for item in data]
+    st.table(flat_data)
 
-    filtered_data = []
-    for item in data:
-        flat_item = {}
-        for field in fields:
-            flat_item[field] = item.get(field, "")
-        filtered_data.append(flat_item)
-    
-    st.write(filtered_data)
-
-# Streamlit Interface
+# Hauptfunktion für die WebApp
 def main():
-    st.title("Proffix Kundendaten Chatbot")
-
-    # Chat-Eingabe
+    st.title("Proffix ERP Intelligenter Chatbot")
+    
     user_input = st.text_input("Geben Sie Ihre Anfrage ein:", "")
-
+    
     if st.button("Senden"):
         session_id = login_to_api()
         if session_id:
-            endpoint, fields = analyze_and_map(user_input)
+            interpreted_query = interpret_query_with_chatgpt(user_input)
+            st.write("Interpretierte Anfrage:", interpreted_query)
+            endpoint, fields = generate_api_request(interpreted_query)
             if endpoint:
                 data = request_data(session_id, endpoint)
                 if data:
                     display_data(data, fields)
             else:
-                st.info("Unbekannte Anfrage. Bitte versuchen Sie es erneut.")
+                st.error("Konnte die Anfrage nicht interpretieren.")
         else:
-            st.error("Login failed! Please check your credentials and try again.")
+            st.error("Login fehlgeschlagen!")
 
 if __name__ == "__main__":
     main()
