@@ -24,13 +24,9 @@ login_data = {
 def login_to_api():
     response = requests.post(f"{API_URL}/PRO/Login", json=login_data)
     
-    st.write(f"Status code: {response.status_code}")
-    st.write(f"Response headers: {response.headers}")
-    
     if response.status_code == 200 or response.status_code == 201:
         session_id = response.headers.get("PxSessionId")
         if session_id:
-            st.write(f"Session ID: {session_id}")
             return session_id
         else:
             st.error("Session ID not found in response headers.")
@@ -42,12 +38,9 @@ def login_to_api():
 # Funktion zur Anfrage an die API
 def request_data(session_id, endpoint):
     headers = {
-        "PxSessionId": session_id  # Verwende den korrekten Header für die Session-ID
+        "PxSessionId": session_id
     }
     response = requests.get(f"{API_URL}/{endpoint}", headers=headers)
-    
-    st.write(f"Request status code: {response.status_code}")
-    st.write(f"Request response: {response.text}")
     
     if response.status_code == 200:
         return response.json()
@@ -83,6 +76,7 @@ def main():
             if endpoint:
                 data = request_data(session_id, endpoint)
                 if data:
+                    # JSON-Daten in einer strukturierten und lesbaren Form anzeigen
                     st.json(data)
             else:
                 st.info("Unbekannte Anfrage. Bitte versuchen Sie es erneut.")
