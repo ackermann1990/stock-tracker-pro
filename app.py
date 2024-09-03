@@ -55,7 +55,7 @@ def analyze_text(text):
             return f"ADR/adresse?$filter=contains(Ort,'Bern')&$top=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
         else:
             return "ADR/adresse?$top=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
-    elif "umsatz" in text.lower() and ("hypobank" in text.lower() or "firma" in text.lower()):
+    elif "umsatz" in text.lower() and ("hypobank" in text.lower() oder "firma" in text.lower()):
         if "st. gallen" in text.lower():
             return f"VOL/umsatz?$filter=contains(Firma,'Hypobank St. Gallen')&$top=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
         else:
@@ -89,19 +89,26 @@ def display_data(data, fields):
         for field in fields:
             value = item.get(field, "")
             if isinstance(value, dict):
-                # Wenn das Feld ein Dictionary ist, können wir es flach machen
+                # Wenn das Feld ein Dictionary ist, flachen wir es auf
                 for subkey, subvalue in value.items():
                     flat_item[f"{field}_{subkey}"] = subvalue
+            elif isinstance(value, list):
+                # Wenn das Feld eine Liste ist, umwandeln wir sie in einen String
+                flat_item[field] = ', '.join(map(str, value))
             else:
                 flat_item[field] = value
         filtered_data.append(flat_item)
-    
+
+    # Logge die aufbereiteten Daten, um die Struktur zu überprüfen
+    st.write("Aufbereitete Daten für DataFrame:", filtered_data)
+
     # Erstelle ein DataFrame für die Anzeige
     try:
         df = pd.DataFrame(filtered_data)
         st.dataframe(df)
     except ValueError as e:
         st.error(f"Fehler bei der Datenumwandlung: {e}")
+        st.write(filtered_data)  # Zeige die problematischen Daten an
 
 # Streamlit Interface
 def main():
