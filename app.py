@@ -100,7 +100,7 @@ def display_data(data, fields):
         filtered_data.append(flat_item)
 
     # Logge die aufbereiteten Daten, um die Struktur zu überprüfen
-    st.write("Aufbereitete Daten für DataFrame:", filtered_data)
+    st.json(filtered_data)  # Verwende st.json() für eine klarere Darstellung
 
     # Erstelle ein DataFrame für die Anzeige
     try:
@@ -108,7 +108,7 @@ def display_data(data, fields):
         st.dataframe(df)
     except ValueError as e:
         st.error(f"Fehler bei der Datenumwandlung: {e}")
-        st.write(filtered_data)  # Zeige die problematischen Daten an
+        st.json(filtered_data)  # Zeige die problematischen Daten in JSON-Format an
 
 # Streamlit Interface
 def main():
