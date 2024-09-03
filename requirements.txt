@@ -2,3 +2,4 @@ streamlit
 requests
 pandas
 spacy==3.3.0
+thinc==8.0.0
