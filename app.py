@@ -1,23 +1,15 @@
 import streamlit as st
 import requests
 import hashlib
-import textrazor
-
-# TextRazor API-Schlüssel setzen
-textrazor.api_key = "a416add172f24a9d5a2e4dda72139660b524d408c182af88aa4f7f08"
-
-# TextRazor Client initialisieren
-client = textrazor.TextRazor(extractors=["entities", "topics"])
 
 # API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
-API_PASSWORD = "Demo_2016_PWREST!,Wangs"
 DATABASE_NAME = "DEMODB"
 USER = "Gast"
 PASSWORD = "gast123"
 MODULE = ["VOL"]
 
-# Hash das Passwort für den Login
+# Erzeuge den SHA-256 Hash des Passworts
 hashed_password = hashlib.sha256(PASSWORD.encode()).hexdigest()
 
 # Login Daten im JSON Format
@@ -34,7 +26,7 @@ def login_to_api():
     if response.status_code == 200:
         return response.json().get("SessionId")
     else:
-        st.error("Login failed!")
+        st.error(f"Login failed! Status code: {response.status_code}, Response: {response.text}")
         return None
 
 # Funktion zur Anfrage an die API
@@ -49,10 +41,11 @@ def request_data(session_id, endpoint):
         st.error("Request failed!")
         return None
 
-# Funktion zur Analyse des Benutzereingabetextes mit TextRazor
+# Funktion zur Analyse des Benutzereingabetextes
 def analyze_text(text):
-    response = client.analyze(text)
-    keywords = [entity.id.lower() for entity in response.entities()]
+    # Diese Funktion wurde mit TextRazor erstellt und kann an deine Bedürfnisse angepasst werden
+    # Hier sollte die Textverarbeitung und Analyse des Benutzereingabetextes erfolgen
+    keywords = text.lower().split()
 
     # Schlüsselwörter erkennen und entsprechende Endpunkte zuordnen
     if "kunden" in keywords or "adresse" in keywords:
@@ -81,6 +74,8 @@ def main():
                     st.json(data)
             else:
                 st.info("Unbekannte Anfrage. Bitte versuchen Sie es erneut.")
+        else:
+            st.error("Login failed! Please check your credentials and try again.")
 
 if __name__ == "__main__":
     main()
