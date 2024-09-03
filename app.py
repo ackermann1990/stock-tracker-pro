@@ -52,14 +52,14 @@ def analyze_text(text):
     # Manuelle Erkennung bestimmter Schlüsselwörter
     if "kunde" in text.lower() or "kunden" in text.lower():
         if "bern" in entities:
-            return f"ADR/adresse?filter=Ort eq 'Bern'&depth=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
+            return f"ADR/adresse?$filter=contains(Ort,'Bern')&$top=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
         else:
-            return "ADR/adresse?limit=3&depth=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
+            return "ADR/adresse?$top=3", ["AdressNr", "Name", "Vorname", "Strasse", "PLZ", "Ort"]
     elif "umsatz" in text.lower() and ("hypobank" in text.lower() or "firma" in text.lower()):
         if "st. gallen" in text.lower():
-            return f"VOL/umsatz?filter=Firma eq 'Hypobank St. Gallen'&depth=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
+            return f"VOL/umsatz?$filter=contains(Firma,'Hypobank St. Gallen')&$top=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
         else:
-            return f"VOL/umsatz?limit=3&depth=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
+            return "VOL/umsatz?$top=3", ["UmsatzNr", "Firma", "Betrag", "Datum"]
     else:
         return None, []
 
