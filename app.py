@@ -32,4 +32,3 @@ def query_customer_data(query):
 if query:
     result = query_customer_data(query)
     st.json(result)
-
