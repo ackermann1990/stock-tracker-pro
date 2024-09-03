@@ -82,8 +82,16 @@ def display_data(data, fields):
         st.info("Keine Daten gefunden.")
         return
     
-    # Extrahiere nur die relevanten Felder aus den Daten
-    filtered_data = [{field: item.get(field, "") for field in fields} for item in data]
+    # Sicherstellen, dass jedes Element in der Liste ein flaches Dictionary ist
+    filtered_data = []
+    for item in data:
+        flat_item = {}
+        for field in fields:
+            value = item.get(field, "")
+            if isinstance(value, dict):
+                value = str(value)  # Bei verschachtelten Dictionaries, in String umwandeln
+            flat_item[field] = value
+        filtered_data.append(flat_item)
     
     # Erstelle ein DataFrame für die Anzeige
     df = pd.DataFrame(filtered_data)
