@@ -4,7 +4,7 @@ import requests
 import hashlib
 
 # OpenAI GPT API-Schlüssel setzen
-openai.api_key = "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"
+openai.api_key = "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"
 
 # Proffix API URL und Login-Daten
 API_URL = "https://portal.proffix.net:11011/pxapi/V4"
