@@ -17,10 +17,10 @@ if uploaded_file is not None:
         symbol, description = line.strip().split(',', 1)
         symbols_data.append({"symbol": symbol.strip(), "description": description.strip()})
     
-    # Python-Code generieren
+    # Python-Code generieren (ohne f-string)
     python_code = "nasdaq_symbols = [\n"
     for entry in symbols_data:
-        python_code += f"    {{'symbol': '{entry['symbol']}', 'description': '{entry['description']}'}}},\n"
+        python_code += "    {'symbol': '" + entry['symbol'] + "', 'description': '" + entry['description'] + "'},\n"
     python_code += "]"
     
     # Zeige den generierten Python-Code in einem Textfeld an
