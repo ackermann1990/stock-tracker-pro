@@ -1,12 +1,11 @@
 import streamlit as st
 import requests
 from datetime import datetime, timedelta
-import asyncio
 
 # Polygon.io API-Schlüssel
 api_key = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
-# Trigger und Zeitbereich von Benutzer festlegen lassen
+# Trigger- und Filter-Einstellungen
 st.title("NASDAQ Stock Volume Tracker")
 percentage_threshold = st.slider("Set percentage increase threshold:", min_value=5, max_value=200, value=10, step=5)
 time_range = st.selectbox("Select time range for volume change:", ["7 days", "15 days", "30 days", "90 days"])
@@ -15,11 +14,11 @@ time_range = st.selectbox("Select time range for volume change:", ["7 days", "15
 days_map = {"7 days": 7, "15 days": 15, "30 days": 30, "90 days": 90}
 selected_days = days_map[time_range]
 
-# Alle NASDAQ Symbole abrufen
+# Funktion zum Abrufen der NASDAQ Symbole (aus der API)
 def get_all_nasdaq_symbols():
     url = f"https://api.polygon.io/v3/reference/tickers?market=stocks&exchange=XNAS&active=true&apiKey={api_key}"
     response = requests.get(url)
-
+    
     if response.status_code == 200:
         data = response.json()
         symbols = [ticker['ticker'] for ticker in data['results']]
@@ -27,27 +26,52 @@ def get_all_nasdaq_symbols():
     else:
         return []
 
-# Funktion für Batch-Verarbeitung
-def batch_process_symbols(symbol_list, batch_size=100):
-    for i in range(0, len(symbol_list), batch_size):
-        batch = symbol_list[i:i + batch_size]
-        triggered_stocks = get_volume_data_batch(batch, selected_days)
+# Volumenänderungen für die Symbole abrufen
+def get_volume_data(symbol, days):
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
 
-        if len(triggered_stocks) > 0:
-            st.write(f"Triggered Stocks in Batch {i//batch_size + 1}:")
-            for stock, change in triggered_stocks:
-                st.write(f"{stock}: {change:.2f}% volume change")
-        else:
-            st.write(f"No stocks triggered in Batch {i//batch_size + 1}.")
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}?apiKey={api_key}"
+    response = requests.get(url)
 
-# Hintergrundprozess zum Abrufen von Volumendaten
-async def fetch_all_stocks_background(symbols):
-    await batch_process_symbols(symbols)
-
-# App starten, wenn der Nutzer auf "Scan Stocks" klickt
-if st.button("Scan Stocks"):
-    nasdaq_symbols = get_all_nasdaq_symbols()
-    if nasdaq_symbols:
-        asyncio.run(fetch_all_stocks_background(nasdaq_symbols))
+    if response.status_code == 200:
+        data = response.json()
+        volumes = [day['v'] for day in data['results']]
+        return volumes
     else:
-        st.error("Failed to retrieve Nasdaq symbols.")
+        return []
+
+# Alle Symbole und Volumendaten verarbeiten
+nasdaq_symbols = get_all_nasdaq_symbols()
+triggered_stocks = []
+neutral_stocks = []
+
+# Prozess für das Abrufen der Volumendaten und Trigger-Check
+for symbol in nasdaq_symbols:
+    volumes = get_volume_data(symbol, selected_days)
+    
+    if len(volumes) > 0:
+        current_volume = volumes[-1]
+        avg_volume = sum(volumes[:-1]) / len(volumes[:-1])
+
+        vol_change = ((current_volume - avg_volume) / avg_volume) * 100
+        
+        if vol_change >= percentage_threshold:
+            triggered_stocks.append((symbol, vol_change))
+        else:
+            neutral_stocks.append(symbol)
+
+# Anzeige der getriggerten Aktien
+if triggered_stocks:
+    st.subheader("Triggered Stocks")
+    cols = st.columns(10)  # 10 Symbole pro Zeile
+    for i, (symbol, change) in enumerate(triggered_stocks):
+        cols[i % 10].write(f"**{symbol}**: {change:.2f}%")
+
+# Anzeige der neutralen (grauen) Aktien
+if neutral_stocks:
+    st.subheader("Other Stocks")
+    cols = st.columns(10)  # 10 Symbole pro Zeile
+    for i, symbol in enumerate(neutral_stocks):
+        cols[i % 10].write(f"{symbol}")
+        cols[i % 10].markdown("<div style='color: gray;'>⬛</div>", unsafe_allow_html=True)
