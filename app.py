@@ -10,11 +10,17 @@ if uploaded_file is not None:
     
     # TXT-Datei einlesen und in Python-Code umwandeln
     for line in uploaded_file:
-        # Konvertiere die Byte-Zeilen zu String und spalte bei ","
-        line = line.decode('utf-8')
-        if "Symbol" in line:  # Kopfzeile überspringen
+        # Konvertiere die Byte-Zeilen zu String
+        line = line.decode('utf-8').strip()
+        
+        # Überspringe leere Zeilen oder die Kopfzeile
+        if not line or 'Symbol' in line:
             continue
-        symbol, description = line.strip().split(',', 1)
+        
+        # Teile die Zeile bei einem Tabulatorzeichen (\t) auf
+        symbol, description = line.split('\t', 1)
+        
+        # Füge das Symbol und die Beschreibung zur Liste hinzu
         symbols_data.append({"symbol": symbol.strip(), "description": description.strip()})
     
     # Python-Code generieren (ohne f-string)
