@@ -1,104 +1,65 @@
-import openai
 import streamlit as st
 import requests
-import hashlib
+from datetime import datetime, timedelta
 
-# OpenAI GPT API-Schlüssel setzen
-openai.api_key = "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"
+# Polygon.io API-Schlüssel
+api_key = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
-# Proffix API URL und Login-Daten
-API_URL = "https://portal.proffix.net:11011/pxapi/V4"
-DATABASE_NAME = "DEMODB"
-USER = "Gast"
-PASSWORD = "gast123"
-MODULE = ["VOL"]
+# Nutzeroptionen für Trigger
+st.title("NASDAQ Stock Volume Tracker")
+percentage_threshold = st.slider("Set percentage increase threshold:", min_value=5, max_value=200, value=10, step=5)
+time_range = st.selectbox("Select time range for volume change:", ["7 days", "15 days", "30 days", "90 days"])
 
-# Erzeuge den SHA-256 Hash des Passworts
-hashed_password = hashlib.sha256(PASSWORD.encode()).hexdigest()
+# Zeiträume definieren
+days_map = {"7 days": 7, "15 days": 15, "30 days": 30, "90 days": 90}
+selected_days = days_map[time_range]
 
-# Login Daten im JSON Format
-login_data = {
-    "Benutzer": USER,
-    "Passwort": hashed_password,
-    "Datenbank": {"Name": DATABASE_NAME},
-    "Module": MODULE
-}
+# Funktion zum Abrufen der NASDAQ Aktien (dummy Funktion für symbol list)
+def get_nasdaq_symbols():
+    # In der Realität würde hier eine Liste der NASDAQ Symbole abgerufen werden.
+    # Für das Beispiel nur einige Symbole
+    return ["AAPL", "MSFT", "GOOGL"]
 
-# Funktion zum Login in die API
-def login_to_api():
-    response = requests.post(f"{API_URL}/PRO/Login", json=login_data)
-    if response.status_code == 200 or response.status_code == 201:
-        session_id = response.headers.get("PxSessionId")
-        return session_id
-    else:
-        st.error("Login failed!")
-        return None
+# Funktion zum Abrufen der Volumendaten
+def get_volume_data(symbol, days):
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}?apiKey={api_key}"
+    response = requests.get(url)
 
-# Funktion zur Interpretation der Anfrage durch ChatGPT
-def interpret_query_with_chatgpt(user_input):
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant that maps user queries to Proffix ERP API calls."},
-            {"role": "user", "content": f"Interpretiere die folgende Anfrage und mappe sie auf die relevanten Entitäten und API-Endpunkte im Proffix-ERP: {user_input}"}
-        ]
-    )
-    return response['choices'][0]['message']['content'].strip()
-
-# Funktion zur dynamischen Erstellung der API-Anfrage basierend auf der Interpretation
-def generate_api_request(interpreted_query):
-    if "Kundennummer" in interpreted_query:
-        kundennummer = interpreted_query.split("Kundennummer ")[1].split(" ")[0]
-        return f"ADR/adresse?$filter=AdressNr eq {kundennummer}&$top=1", ["Name", "Strasse", "PLZ", "Ort"]
-    elif "Mailadresse" in interpreted_query and "Firma" in interpreted_query:
-        firma = interpreted_query.split("Firma ")[1].split(" ")[0]
-        return f"ADR/adresse?$filter=contains(Name,'{firma}')&$top=1", ["EMail"]
-    elif "Kunden aus" in interpreted_query and "Ort" in interpreted_query:
-        ort = interpreted_query.split("Ort ")[1].split(" ")[0]
-        return f"ADR/adresse?$filter=contains(Ort,'{ort}')", ["Name", "Strasse", "PLZ", "Ort"]
-    else:
-        return None, []
-
-# Funktion zur Anfrage an die Proffix API
-def request_data(session_id, endpoint):
-    headers = {
-        "PxSessionId": session_id
-    }
-    response = requests.get(f"{API_URL}/{endpoint}", headers=headers)
     if response.status_code == 200:
-        return response.json()
+        data = response.json()
+        volumes = [day['v'] for day in data['results']]
+        return volumes
     else:
-        st.error("Request failed!")
-        return None
+        return []
 
-# Funktion zur Darstellung der Daten
-def display_data(data, fields):
-    if not data:
-        st.info("Keine Daten gefunden.")
-        return
-    flat_data = [{field: item.get(field, "") for field in fields} for item in data]
-    st.table(flat_data)
+# Hintergrundabruf für alle NASDAQ Aktien
+if st.button("Check Stocks"):
+    st.write(f"Checking for stocks with volume changes over {percentage_threshold}% in the last {time_range}...")
 
-# Hauptfunktion für die WebApp
-def main():
-    st.title("Proffix ERP Intelligenter Chatbot")
+    nasdaq_symbols = get_nasdaq_symbols()
+    triggered_stocks = []
+
+    for symbol in nasdaq_symbols:
+        volumes = get_volume_data(symbol, selected_days)
+        
+        if len(volumes) > 0:
+            current_volume = volumes[-1]
+            avg_volume = sum(volumes[:-1]) / len(volumes[:-1])
+            
+            # Volumenänderung berechnen
+            vol_change = ((current_volume - avg_volume) / avg_volume) * 100
+            
+            if vol_change >= percentage_threshold:
+                triggered_stocks.append((symbol, vol_change))
     
-    user_input = st.text_input("Geben Sie Ihre Anfrage ein:", "")
-    
-    if st.button("Senden"):
-        session_id = login_to_api()
-        if session_id:
-            interpreted_query = interpret_query_with_chatgpt(user_input)
-            st.write("Interpretierte Anfrage:", interpreted_query)
-            endpoint, fields = generate_api_request(interpreted_query)
-            if endpoint:
-                data = request_data(session_id, endpoint)
-                if data:
-                    display_data(data, fields)
-            else:
-                st.error("Konnte die Anfrage nicht interpretieren.")
-        else:
-            st.error("Login fehlgeschlagen!")
+    # Ergebnisse anzeigen
+    if len(triggered_stocks) > 0:
+        st.write(f"Stocks triggered with volume change over {percentage_threshold}%:")
+        for stock, change in triggered_stocks:
+            st.write(f"{stock}: {change:.2f}% volume change")
+    else:
+        st.write("No stocks triggered.")
 
-if __name__ == "__main__":
-    main()
