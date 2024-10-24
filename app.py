@@ -26,7 +26,31 @@ def get_all_nasdaq_symbols():
     else:
         return []
 
-# Volumenänderungen für die Symbole abrufen
+# Funktion zum Abrufen des durchschnittlichen Handelsvolumens
+def get_avg_volume(symbol, months=3):
+    end_date = datetime.now().strftime("%Y-%m-%d")
+    start_date = (datetime.now() - timedelta(days=months*30)).strftime("%Y-%m-%d")
+
+    url = f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/day/{start_date}/{end_date}?apiKey={api_key}"
+    response = requests.get(url)
+    
+    if response.status_code == 200:
+        data = response.json()
+        volumes = [day['v'] for day in data['results']]
+        if volumes:
+            return sum(volumes) / len(volumes)
+    return None
+
+# Layout für Kacheln
+def render_tile(symbol, color, key):
+    st.markdown(f"""
+        <div style="background-color:{color}; padding:20px; border-radius:15px; text-align:center; cursor: pointer;" 
+        onclick="window.location.href='#{key}'">
+        <span style="font-size:20px; color:white;">{symbol}</span>
+        </div>
+    """, unsafe_allow_html=True)
+
+# Getriggerte und neutrale Aktien filtern
 def get_volume_data(symbol, days):
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
@@ -41,12 +65,11 @@ def get_volume_data(symbol, days):
     else:
         return []
 
-# Alle Symbole und Volumendaten verarbeiten
+# Abrufen aller Symbole und Verarbeiten der Volumendaten
 nasdaq_symbols = get_all_nasdaq_symbols()
 triggered_stocks = []
 neutral_stocks = []
 
-# Prozess für das Abrufen der Volumendaten und Trigger-Check
 for symbol in nasdaq_symbols:
     volumes = get_volume_data(symbol, selected_days)
     
@@ -57,21 +80,33 @@ for symbol in nasdaq_symbols:
         vol_change = ((current_volume - avg_volume) / avg_volume) * 100
         
         if vol_change >= percentage_threshold:
-            triggered_stocks.append((symbol, vol_change))
+            triggered_stocks.append(symbol)
         else:
             neutral_stocks.append(symbol)
 
-# Anzeige der getriggerten Aktien
+# Anzeige der getriggerten Aktien oben in grünen Kacheln
 if triggered_stocks:
     st.subheader("Triggered Stocks")
     cols = st.columns(10)  # 10 Symbole pro Zeile
-    for i, (symbol, change) in enumerate(triggered_stocks):
-        cols[i % 10].write(f"**{symbol}**: {change:.2f}%")
+    for i, symbol in enumerate(triggered_stocks):
+        key = f"triggered_{i}"
+        with cols[i % 10]:
+            render_tile(symbol, "#28a745", key)
 
-# Anzeige der neutralen (grauen) Aktien
+# Anzeige der neutralen (grauen) Aktien in Kacheln
 if neutral_stocks:
     st.subheader("Other Stocks")
     cols = st.columns(10)  # 10 Symbole pro Zeile
     for i, symbol in enumerate(neutral_stocks):
-        cols[i % 10].write(f"{symbol}")
-        cols[i % 10].markdown("<div style='color: gray;'>⬛</div>", unsafe_allow_html=True)
+        key = f"neutral_{i}"
+        with cols[i % 10]:
+            render_tile(symbol, "#6c757d", key)
+
+# Klickbare Kacheln für Durchschnittsvolumen der letzten 3 Monate
+for i, symbol in enumerate(nasdaq_symbols):
+    if st.button(f"Show 3-month average volume for {symbol}"):
+        avg_vol = get_avg_volume(symbol)
+        if avg_vol:
+            st.write(f"The 3-month average volume for {symbol} is {avg_vol}")
+        else:
+            st.write(f"No data available for {symbol}")
