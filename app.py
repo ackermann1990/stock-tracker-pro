@@ -4,8 +4,8 @@ import requests
 # Polygon.io API Key
 API_KEY = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
-# Importiere die Tickersymbole direkt aus der Datei im GitHub Container
-from data.nasdaq_tickers import nasdaq_symbols  # Annahme: Die Datei heißt nasdaq_tickers.py
+# Importiere die Tickersymbole direkt aus der Datei nasdaq_tickers.py
+from nasdaq_tickers import nasdaq_symbols  # Direkt importiert aus der Datei
 
 # Streamlit setup
 st.title("Nasdaq Ticker Tracker")
