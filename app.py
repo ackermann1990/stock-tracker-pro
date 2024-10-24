@@ -1,11 +1,16 @@
 import streamlit as st
 import requests
+import sys
+import os
+
+# Füge das aktuelle Verzeichnis zu sys.path hinzu, um sicherzustellen, dass nasdaq_tickers.py gefunden wird
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Importiere die Tickersymbole direkt aus der Datei nasdaq_tickers.py
+from nasdaq_tickers import nasdaq_symbols  # Datei muss im gleichen Verzeichnis wie app.py liegen
 
 # Polygon.io API Key
 API_KEY = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
-
-# Importiere die Tickersymbole direkt aus der Datei nasdaq_tickers.py
-from nasdaq_tickers import nasdaq_symbols
 
 # Streamlit setup
 st.title("Nasdaq Ticker Tracker")
