@@ -1,41 +1,39 @@
 import streamlit as st
+import requests
 
-# Datei-Upload über Streamlit
-uploaded_file = st.file_uploader("Choose a TXT file with NASDAQ symbols", type="txt")
+# Polygon.io API Key
+API_KEY = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
-# Wenn eine Datei hochgeladen wird, konvertiere sie in Python-Code
-if uploaded_file is not None:
-    # Speichere die hochgeladene Datei vorübergehend
-    symbols_data = []
-    
-    # TXT-Datei einlesen und in Python-Code umwandeln
-    for line in uploaded_file:
-        # Konvertiere die Byte-Zeilen zu String
-        line = line.decode('utf-8').strip()
-        
-        # Überspringe leere Zeilen oder die Kopfzeile
-        if not line or 'Symbol' in line:
-            continue
-        
-        # Teile die Zeile bei einem Tabulatorzeichen (\t) auf
-        symbol, description = line.split('\t', 1)
-        
-        # Füge das Symbol und die Beschreibung zur Liste hinzu
-        symbols_data.append({"symbol": symbol.strip(), "description": description.strip()})
-    
-    # Python-Code generieren (ohne f-string)
-    python_code = "nasdaq_symbols = [\n"
-    for entry in symbols_data:
-        python_code += "    {'symbol': '" + entry['symbol'] + "', 'description': '" + entry['description'] + "'},\n"
-    python_code += "]"
-    
-    # Zeige den generierten Python-Code in einem Textfeld an
-    st.code(python_code, language='python')
+# Importiere die Tickersymbole direkt aus der Datei im GitHub Container
+from data.nasdaq_tickers import nasdaq_symbols  # Annahme: Die Datei heißt nasdaq_tickers.py
 
-    # Biete den Download des generierten Codes als Python-Datei an
-    st.download_button(
-        label="Download Python Code",
-        data=python_code,
-        file_name='nasdaq_symbols.py',
-        mime='text/x-python'
-    )
+# Streamlit setup
+st.title("Nasdaq Ticker Tracker")
+
+# Funktion zum Abrufen des Handelsvolumens und Preises
+def get_ticker_data(symbol):
+    # Beispielhaftes Datum (dies kann später dynamisch gemacht werden)
+    url = f"https://api.polygon.io/v1/open-close/{symbol}/2023-10-20?apiKey={API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
+# Anzeige der Tickersymbole in abgerundeten Kacheln
+st.subheader("Ticker List")
+
+# Hier zeigen wir die Tickersymbole und Beschreibungen an
+for ticker in nasdaq_symbols:
+    symbol = ticker['symbol']
+    description = ticker['description']
+    
+    # API Call to get price and volume data
+    data = get_ticker_data(symbol)
+    
+    if data and 'status' in data and data['status'] == 'OK':
+        volume = data['volume']
+        close_price = data['close']
+        st.write(f"{symbol} - {description}: Volume: {volume}, Price: {close_price}")
+    else:
+        st.write(f"{symbol} - {description}: No data available or error retrieving data.")
