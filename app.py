@@ -5,7 +5,7 @@ import requests
 API_KEY = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
 # Importiere die Tickersymbole direkt aus der Datei nasdaq_tickers.py
-from nasdaq_tickers import nasdaq_symbols  # Direkt importiert aus der Datei
+from nasdaq_tickers import nasdaq_symbols
 
 # Streamlit setup
 st.title("Nasdaq Ticker Tracker")
