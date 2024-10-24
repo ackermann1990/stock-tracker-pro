@@ -1,7 +1,8 @@
+import streamlit as st
 import requests
 import json
 
-# Polygon.io API-Schlüssel (ersetze mit deinem eigenen Schlüssel)
+# Polygon.io API-Schlüssel
 api_key = "vKBX_cLJLjJNKUMIMF4EFW6HLKK9vo3o"
 
 # URL für den Abruf der NASDAQ Symbole
@@ -11,6 +12,8 @@ base_url = f"https://api.polygon.io/v3/reference/tickers?market=stocks&exchange=
 def download_and_save_all_symbols():
     symbols = []
     url = base_url
+    progress = st.progress(0)  # Fortschrittsanzeige
+    i = 0
     while url:  # Schleife durch die Seiten der API-Ergebnisse
         response = requests.get(url)
         if response.status_code == 200:
@@ -18,6 +21,10 @@ def download_and_save_all_symbols():
             results = data.get('results', [])
             symbols.extend([ticker['ticker'] for ticker in results])
             
+            # Fortschrittsanzeige aktualisieren
+            i += 1
+            progress.progress(i / 10)  # Beispielhaft, setze hier einen geeigneten Wert für die Gesamtanzahl
+
             # Überprüfen, ob es eine nächste Seite gibt
             next_url = data.get('next_url', None)
             if next_url:
@@ -25,14 +32,19 @@ def download_and_save_all_symbols():
             else:
                 url = None  # Keine weiteren Seiten
         else:
-            print(f"Error fetching data: {response.status_code}")
+            st.error(f"Error fetching data: {response.status_code}")
             break
     
     # Symbole in einer JSON-Datei speichern
     with open('nasdaq_symbols.json', 'w') as f:
         json.dump(symbols, f)
 
-    print(f"Downloaded {len(symbols)} NASDAQ symbols and saved to 'nasdaq_symbols.json'.")
+    st.success(f"Downloaded {len(symbols)} NASDAQ symbols and saved to 'nasdaq_symbols.json'.")
 
-# Abrufen und Speichern der NASDAQ Symbole
-download_and_save_all_symbols()
+# Streamlit UI
+st.title("Download NASDAQ Symbols")
+
+if st.button("Download Symbols"):
+    download_and_save_all_symbols()
+else:
+    st.write("Click the button to start downloading NASDAQ symbols.")
